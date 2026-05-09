@@ -14,15 +14,12 @@ interface IngredientsPageProps {
     notes: string;
     image_url: string | null;
   }) => Promise<void>;
-  onUpdate: (
-    ingredientId: string,
-    payload: {
-      name: string;
-      category: string;
-      notes: string;
-      image_url: string | null;
-    },
-  ) => Promise<void>;
+  onUpdate: (ingredientId: string, payload: {
+    name: string;
+    category: string;
+    notes: string;
+    image_url: string | null;
+  }) => Promise<void>;
   onDelete: (ingredientId: string) => Promise<void>;
 }
 
