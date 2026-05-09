@@ -196,4 +196,3 @@ Proyecto personal desarrollado como una web app moderna para organizar y present
 
 **Bebidario convierte una simple lista de recetas en una colección visual de bebidas que realmente dan ganas de preparar.**
 
-```
