@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { HashRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { Session } from '@supabase/supabase-js';
 import { AuthCard } from './components/AuthCard';
 import { Layout } from './components/Layout';
@@ -213,7 +213,7 @@ function AppInner() {
 
     await deleteRecipe(recipeId);
     setRecipes((current) => current.filter((recipe) => recipe.id !== recipeId));
-    window.location.href = '/';
+    window.location.hash = '#/';
   };
 
   const onToggleFavorite = async (recipe: Recipe) => {
@@ -312,8 +312,8 @@ function addToHistory(recipeId: string) {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <AppInner />
-    </BrowserRouter>
+    </HashRouter>
   );
 }
