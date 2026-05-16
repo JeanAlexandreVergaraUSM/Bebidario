@@ -14,6 +14,7 @@ import { RecipeDetailPage } from './pages/RecipeDetailPage';
 import { RecipeEditorPage } from './pages/RecipeEditorPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { Ingredient, Recipe, RecipePayload } from './types';
+import { ScrollToTop } from './components/ScrollToTop';
 
 const fontKey = 'bebidario-font-size';
 const historyKey = 'bebidario-history';
@@ -313,6 +314,7 @@ function addToHistory(recipeId: string) {
 export default function App() {
   return (
     <HashRouter>
+      <ScrollToTop />
       <AppInner />
     </HashRouter>
   );

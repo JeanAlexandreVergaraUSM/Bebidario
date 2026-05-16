@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { IngredientForm } from '../components/IngredientForm';
 import { EmptyState } from '../components/EmptyState';
 import { uploadIngredientImage } from '../services/storage';
@@ -14,12 +14,15 @@ interface IngredientsPageProps {
     notes: string;
     image_url: string | null;
   }) => Promise<void>;
-  onUpdate: (ingredientId: string, payload: {
-    name: string;
-    category: string;
-    notes: string;
-    image_url: string | null;
-  }) => Promise<void>;
+  onUpdate: (
+    ingredientId: string,
+    payload: {
+      name: string;
+      category: string;
+      notes: string;
+      image_url: string | null;
+    },
+  ) => Promise<void>;
   onDelete: (ingredientId: string) => Promise<void>;
 }
 
@@ -34,10 +37,32 @@ export function IngredientsPage({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [busy, setBusy] = useState(false);
+  const formRef = useRef<HTMLDivElement | null>(null);
 
   const editingIngredient = ingredients.find((ingredient) => ingredient.id === editingId);
   const isEditing = Boolean(editingIngredient);
   const shouldShowForm = showCreateForm || isEditing;
+
+  function scrollToForm() {
+    window.setTimeout(() => {
+      formRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }, 0);
+  }
+
+  function openCreateForm() {
+    setEditingId(null);
+    setShowCreateForm(true);
+    scrollToForm();
+  }
+
+  function openEditForm(ingredientId: string) {
+    setEditingId(ingredientId);
+    setShowCreateForm(false);
+    scrollToForm();
+  }
 
   async function saveIngredient(
     payload: { name: string; category: string; notes: string },
@@ -84,34 +109,28 @@ export function IngredientsPage({
         </div>
 
         {!shouldShowForm ? (
-          <button
-            className="primary-button"
-            onClick={() => setShowCreateForm(true)}
-            type="button"
-          >
+          <button className="primary-button" onClick={openCreateForm} type="button">
             + Añadir ingrediente
           </button>
         ) : null}
       </section>
 
       {shouldShowForm ? (
-        <IngredientForm
-          busy={busy}
-          initialIngredient={editingIngredient}
-          onCancel={handleCancel}
-          onSubmit={saveIngredient}
-        />
+        <div className="form-scroll-anchor" ref={formRef}>
+          <IngredientForm
+            busy={busy}
+            initialIngredient={editingIngredient}
+            onCancel={handleCancel}
+            onSubmit={saveIngredient}
+          />
+        </div>
       ) : null}
 
       {!ingredients.length ? (
         <EmptyState
           action={
             !shouldShowForm ? (
-              <button
-                className="primary-button"
-                onClick={() => setShowCreateForm(true)}
-                type="button"
-              >
+              <button className="primary-button" onClick={openCreateForm} type="button">
                 Crear primer ingrediente
               </button>
             ) : undefined
@@ -137,10 +156,7 @@ export function IngredientsPage({
               <div className="button-row">
                 <button
                   className="ghost-button"
-                  onClick={() => {
-                    setEditingId(ingredient.id);
-                    setShowCreateForm(false);
-                  }}
+                  onClick={() => openEditForm(ingredient.id)}
                   type="button"
                 >
                   Editar

@@ -1,6 +1,7 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Ingredient, Recipe, RecipeCategory, RecipeIngredient, RecipePayload, RecipeStep } from '../types';
 import { uid } from '../lib/helpers';
+import { clearDraft, draftKeys, hasDraft, markActiveDraft } from '../lib/draftGuard';
 
 const categories: RecipeCategory[] = [
   'Frutal',
@@ -53,10 +54,144 @@ export function RecipeForm({ allIngredients, initialRecipe, onSubmit, busy }: Re
   );
   const [error, setError] = useState<string | null>(null);
 
+const [draftReady, setDraftReady] = useState(Boolean(initialRecipe));
+const [showRestoreDraft, setShowRestoreDraft] = useState(false);
+
+useEffect(() => {
+  if (initialRecipe) {
+    setDraftReady(true);
+    setShowRestoreDraft(false);
+    return;
+  }
+
+  if (!hasDraft('recipe')) {
+    setDraftReady(true);
+    setShowRestoreDraft(false);
+    return;
+  }
+
+  setShowRestoreDraft(true);
+  setDraftReady(false);
+}, [initialRecipe]);
+
+useEffect(() => {
+  if (initialRecipe || !draftReady) {
+    return;
+  }
+
+  const hasContent =
+    title.trim() ||
+    description.trim() ||
+    garnish.trim() ||
+    notes.trim() ||
+    tagsInput.trim() ||
+    ingredients.some((ingredient) => ingredient.name.trim() || ingredient.amount.trim()) ||
+    steps.some((step) => step.text.trim());
+
+  if (!hasContent) {
+    clearDraft('recipe');
+    return;
+  }
+
+  localStorage.setItem(
+    draftKeys.recipe,
+    JSON.stringify({
+      title,
+      description,
+      category,
+      difficulty,
+      prepMinutes,
+      servings,
+      favorite,
+      garnish,
+      notes,
+      tagsInput,
+      ingredients,
+      steps,
+    }),
+  );
+
+  markActiveDraft('recipe');
+}, [
+  title,
+  description,
+  category,
+  difficulty,
+  prepMinutes,
+  servings,
+  favorite,
+  garnish,
+  notes,
+  tagsInput,
+  ingredients,
+  steps,
+  initialRecipe,
+  draftReady,
+]);
+
   const ingredientOptions = useMemo(
     () => allIngredients.map((ingredient) => ({ value: ingredient.id, label: ingredient.name })),
     [allIngredients],
   );
+
+  function restoreDraft() {
+  try {
+    const rawDraft = localStorage.getItem(draftKeys.recipe);
+
+    if (!rawDraft) {
+      setShowRestoreDraft(false);
+      setDraftReady(true);
+      return;
+    }
+
+    const draft = JSON.parse(rawDraft) as {
+      title?: string;
+      description?: string;
+      category?: RecipeCategory;
+      difficulty?: RecipePayload['difficulty'];
+      prepMinutes?: number;
+      servings?: number;
+      favorite?: boolean;
+      garnish?: string;
+      notes?: string;
+      tagsInput?: string;
+      ingredients?: RecipeIngredient[];
+      steps?: RecipeStep[];
+    };
+
+    setTitle(draft.title ?? '');
+    setDescription(draft.description ?? '');
+    setCategory(draft.category ?? 'Frutal');
+    setDifficulty(draft.difficulty ?? 'facil');
+    setPrepMinutes(draft.prepMinutes ?? 5);
+    setServings(draft.servings ?? 1);
+    setFavorite(draft.favorite ?? false);
+    setGarnish(draft.garnish ?? '');
+    setNotes(draft.notes ?? '');
+    setTagsInput(draft.tagsInput ?? '');
+    setIngredients(
+      draft.ingredients?.length
+        ? draft.ingredients
+        : [{ id: uid('ingredient'), ingredientId: null, name: '', amount: '', optional: false }],
+    );
+    setSteps(
+      draft.steps?.length
+        ? draft.steps
+        : [{ id: uid('step'), text: '' }],
+    );
+  } catch {
+    clearDraft('recipe');
+  } finally {
+    setShowRestoreDraft(false);
+    setDraftReady(true);
+  }
+}
+
+function discardDraft() {
+  clearDraft('recipe');
+  setShowRestoreDraft(false);
+  setDraftReady(true);
+}
 
   function updateIngredient(index: number, patch: Partial<RecipeIngredient>) {
     setIngredients((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)));
@@ -116,6 +251,9 @@ export function RecipeForm({ allIngredients, initialRecipe, onSubmit, busy }: Re
       },
       imageFile,
     );
+    if (!initialRecipe) {
+  clearDraft('recipe');
+}
   }
 
   return (
@@ -380,6 +518,29 @@ export function RecipeForm({ allIngredients, initialRecipe, onSubmit, busy }: Re
     {busy ? 'Guardando...' : initialRecipe ? 'Guardar cambios' : 'Crear receta'}
   </button>
 </section>
+
+    {showRestoreDraft ? (
+  <div className="draft-modal-backdrop" role="presentation">
+    <section className="draft-modal" role="dialog" aria-modal="true">
+      <p className="eyebrow">Borrador encontrado</p>
+      <h2>¿Quieres retomar tu bebida?</h2>
+      <p className="muted">
+        Hay una bebida que dejaste a medias. Puedes retomarla o borrarla para empezar de cero.
+      </p>
+
+      <div className="draft-modal-actions">
+        <button className="primary-button" onClick={restoreDraft} type="button">
+          Retomar borrador
+        </button>
+
+        <button className="ghost-button danger" onClick={discardDraft} type="button">
+          Borrar borrador
+        </button>
+      </div>
+    </section>
+  </div>
+) : null}
+
     </form>
   );
 }

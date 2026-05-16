@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
+import { clearDraft, draftKeys, hasDraft, markActiveDraft } from '../lib/draftGuard';
 import { Ingredient } from '../types';
 
 interface IngredientFormProps {
@@ -44,18 +45,82 @@ export function IngredientForm({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [preview, setPreview] = useState(initialIngredient?.image_url ?? '');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [draftReady, setDraftReady] = useState(Boolean(initialIngredient));
+  const [showRestoreDraft, setShowRestoreDraft] = useState(false);
 
-  useEffect(() => {
-    setName(initialIngredient?.name ?? '');
-    setCategory(initialIngredient?.category ?? 'Fruta');
-    setNotes(initialIngredient?.notes ?? '');
-    setImageFile(null);
-    setPreview(initialIngredient?.image_url ?? '');
+useEffect(() => {
+  if (initialIngredient) {
+    setDraftReady(true);
+    setShowRestoreDraft(false);
+    return;
+  }
 
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+  if (!hasDraft('ingredient')) {
+    setDraftReady(true);
+    setShowRestoreDraft(false);
+    return;
+  }
+
+  setShowRestoreDraft(true);
+  setDraftReady(false);
+}, [initialIngredient]);
+
+useEffect(() => {
+  if (initialIngredient || !draftReady) {
+    return;
+  }
+
+  const hasContent = Boolean(name.trim() || notes.trim());
+
+  if (!hasContent) {
+    clearDraft('ingredient');
+    return;
+  }
+
+  localStorage.setItem(
+    draftKeys.ingredient,
+    JSON.stringify({
+      name,
+      category,
+      notes,
+    }),
+  );
+
+  markActiveDraft('ingredient');
+}, [name, category, notes, initialIngredient, draftReady]);
+
+function restoreDraft() {
+  try {
+    const rawDraft = localStorage.getItem(draftKeys.ingredient);
+
+    if (!rawDraft) {
+      setShowRestoreDraft(false);
+      setDraftReady(true);
+      return;
     }
-  }, [initialIngredient]);
+
+    const draft = JSON.parse(rawDraft) as {
+      name?: string;
+      category?: string;
+      notes?: string;
+    };
+
+    setName(draft.name ?? '');
+    setCategory(draft.category ?? 'Fruta');
+    setNotes(draft.notes ?? '');
+  } catch {
+    clearDraft('ingredient');
+  } finally {
+    setShowRestoreDraft(false);
+    setDraftReady(true);
+  }
+}
+
+function discardDraft() {
+  clearDraft('ingredient');
+  setShowRestoreDraft(false);
+  setDraftReady(true);
+}
 
   function clearForm() {
     setName('');
@@ -87,10 +152,9 @@ export function IngredientForm({
       },
       imageFile,
     );
-
-    if (!initialIngredient) {
-      clearForm();
-    }
+if (!initialIngredient) {
+  clearDraft('ingredient');
+}
   }
 
   return (
@@ -168,8 +232,30 @@ export function IngredientForm({
       ) : null}
 
       <button className="primary-button" disabled={busy} type="submit">
-        {busy ? 'Guardando...' : initialIngredient ? 'Guardar ingrediente' : 'Crear ingrediente'}
-      </button>
-    </form>
+  {busy ? 'Guardando...' : initialIngredient ? 'Guardar ingrediente' : 'Crear ingrediente'}
+</button>
+
+{showRestoreDraft ? (
+  <div className="draft-modal-backdrop" role="presentation">
+    <section className="draft-modal" role="dialog" aria-modal="true">
+      <p className="eyebrow">Borrador encontrado</p>
+      <h2>¿Quieres retomar tu ingrediente?</h2>
+      <p className="muted">
+        Hay un ingrediente que dejaste a medias. Puedes retomarlo o borrarlo para empezar de cero.
+      </p>
+
+      <div className="draft-modal-actions">
+        <button className="primary-button" onClick={restoreDraft} type="button">
+          Retomar borrador
+        </button>
+
+        <button className="ghost-button danger" onClick={discardDraft} type="button">
+          Borrar borrador
+        </button>
+      </div>
+    </section>
+  </div>
+) : null}
+</form>
   );
 }
