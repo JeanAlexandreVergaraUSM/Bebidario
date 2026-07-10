@@ -154,6 +154,7 @@ export function EventsPage({ recipes, userId }: EventsPageProps) {
 
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [copiedGuestMenuEventId, setCopiedGuestMenuEventId] = useState<string | null>(null);
 
   const [deleteTarget, setDeleteTarget] = useState<BebidarioEvent | null>(null);
 
@@ -163,6 +164,7 @@ export function EventsPage({ recipes, userId }: EventsPageProps) {
   const cancelDeleteButtonRef = useRef<HTMLButtonElement | null>(null);
   const deleteDialogRef = useRef<HTMLElement | null>(null);
   const deleteTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const guestCopyFeedbackTimeoutRef = useRef<number | null>(null);
 
   const today = getTodayInputValue();
 
@@ -478,12 +480,31 @@ export function EventsPage({ recipes, userId }: EventsPageProps) {
     }
   }
 
+  useEffect(() => {
+    return () => {
+      if (guestCopyFeedbackTimeoutRef.current !== null) {
+        window.clearTimeout(guestCopyFeedbackTimeoutRef.current);
+      }
+    };
+  }, []);
+
   async function handleCopyGuestMenuLink(event: BebidarioEvent, token: string) {
     setError(null);
 
     try {
       await copyText(buildGuestMenuPublicLink(token));
+
+      setCopiedGuestMenuEventId(event.id);
       setNotice(`Enlace de la carta de "${event.name}" copiado.`);
+
+      if (guestCopyFeedbackTimeoutRef.current !== null) {
+        window.clearTimeout(guestCopyFeedbackTimeoutRef.current);
+      }
+
+      guestCopyFeedbackTimeoutRef.current = window.setTimeout(() => {
+        setCopiedGuestMenuEventId(null);
+        guestCopyFeedbackTimeoutRef.current = null;
+      }, 2500);
     } catch (copyError) {
       console.error('Error copiando enlace de la carta:', copyError);
       setError('No se pudo copiar el enlace automáticamente. Puedes seleccionarlo y copiarlo manualmente.');
@@ -834,7 +855,9 @@ export function EventsPage({ recipes, userId }: EventsPageProps) {
                             }}
                             type="button"
                           >
-                            Copiar enlace para invitados
+                            {copiedGuestMenuEventId === event.id
+                              ? '✓ Enlace copiado'
+                              : 'Copiar enlace para invitados'}
                           </button>
 
                           <button
