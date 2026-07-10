@@ -47,6 +47,7 @@ export function IngredientForm({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [draftReady, setDraftReady] = useState(Boolean(initialIngredient));
   const [showRestoreDraft, setShowRestoreDraft] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
 useEffect(() => {
   if (initialIngredient) {
@@ -140,9 +141,11 @@ function discardDraft() {
     const trimmedName = name.trim();
 
     if (!trimmedName) {
-      window.alert('Ponle nombre al ingrediente.');
+      setValidationError('Escribe un nombre para el ingrediente.');
       return;
     }
+
+    setValidationError(null);
 
     await onSubmit(
       {
@@ -175,7 +178,10 @@ if (!initialIngredient) {
       <label>
         Nombre
         <input
-          onChange={(event) => setName(event.target.value)}
+          onChange={(event) => {
+            setName(event.target.value);
+            if (validationError) setValidationError(null);
+          }}
           required
           value={name}
         />
@@ -231,16 +237,20 @@ if (!initialIngredient) {
         />
       ) : null}
 
+      {validationError ? (
+        <p className="form-feedback error" role="alert">{validationError}</p>
+      ) : null}
+
       <button className="primary-button" disabled={busy} type="submit">
   {busy ? 'Guardando...' : initialIngredient ? 'Guardar ingrediente' : 'Crear ingrediente'}
 </button>
 
 {showRestoreDraft ? (
   <div className="draft-modal-backdrop" role="presentation">
-    <section className="draft-modal" role="dialog" aria-modal="true">
+    <section className="draft-modal" role="dialog" aria-modal="true" aria-labelledby="ingredient-draft-title" aria-describedby="ingredient-draft-description">
       <p className="eyebrow">Borrador encontrado</p>
-      <h2>¿Quieres retomar tu ingrediente?</h2>
-      <p className="muted">
+      <h2 id="ingredient-draft-title">¿Quieres retomar tu ingrediente?</h2>
+      <p className="muted" id="ingredient-draft-description">
         Hay un ingrediente que dejaste a medias. Puedes retomarlo o borrarlo para empezar de cero.
       </p>
 

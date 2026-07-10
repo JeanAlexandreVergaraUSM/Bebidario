@@ -67,3 +67,80 @@ export interface RecipePayload {
   ingredients: RecipeIngredient[];
   steps: RecipeStep[];
 }
+
+export type EventStatus =
+  | 'draft'
+  | 'awaiting_selection'
+  | 'selection_received'
+  | 'menu_ready'
+  | 'archived';
+
+export type EventType = 'birthday' | 'general';
+
+export interface BebidarioEvent {
+  id: string;
+  owner_id: string;
+  name: string;
+  event_date: string;
+  event_type: EventType;
+  status: EventStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventPayload {
+  name: string;
+  event_date: string;
+  event_type: EventType;
+}
+
+export interface EventOrganizerInvite {
+  event_id: string;
+  public_token: string;
+  created_at: string;
+  submitted_at: string | null;
+}
+
+export interface EventRecipeLinkRow {
+  event_id: string;
+  recipe_id: string;
+}
+
+export interface PublicOrganizerRecipe {
+  id: string;
+  title: string;
+  description: string | null;
+  category: RecipeCategory;
+  image_url: string | null;
+  ingredients: string[];
+}
+
+export interface PublicOrganizerEvent {
+  name: string;
+  event_date: string;
+  event_type: EventType;
+  submitted: boolean;
+  recipes: PublicOrganizerRecipe[];
+}
+
+export interface EventGuestMenu {
+  event_id: string;
+  public_token: string;
+  created_at: string;
+}
+
+export interface PublicGuestRecipe {
+  id: string;
+  title: string;
+  description: string | null;
+  category: RecipeCategory;
+  image_url: string | null;
+  ingredients: string[];
+}
+
+export interface PublicGuestMenu {
+  name: string;
+  event_date: string;
+  event_type: EventType;
+  recipes: PublicGuestRecipe[];
+}

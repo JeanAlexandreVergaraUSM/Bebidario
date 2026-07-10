@@ -47,6 +47,7 @@ export function SettingsPage({
         <div className="button-row wrap">
           {(['sm', 'md', 'lg'] as const).map((option) => (
             <button
+              aria-pressed={fontSize === option}
               className={`ghost-button ${fontSize === option ? 'selected' : ''}`}
               key={option}
               onClick={() => onChangeFont(option)}

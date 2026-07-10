@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { HashRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Session } from '@supabase/supabase-js';
 import { AuthCard } from './components/AuthCard';
 import { Layout } from './components/Layout';
@@ -15,6 +15,10 @@ import { RecipeEditorPage } from './pages/RecipeEditorPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { Ingredient, Recipe, RecipePayload } from './types';
 import { ScrollToTop } from './components/ScrollToTop';
+import { EventsPage } from './pages/EventsPage';
+import { EventDrinksPage } from './pages/EventDrinksPage';
+import { OrganizerSelectionPage } from './pages/OrganizerSelectionPage';
+import { GuestMenuPage } from './pages/GuestMenuPage';
 
 const fontKey = 'bebidario-font-size';
 const historyKey = 'bebidario-history';
@@ -85,6 +89,14 @@ function AppRoutes({
           path="ingredientes"
         />
         <Route
+          element={<EventsPage recipes={recipes} userId={session.user.id} />}
+          path="eventos"
+        />
+        <Route
+          element={<EventDrinksPage recipes={recipes} />}
+          path="eventos/:id/bebidas"
+        />
+        <Route
           element={
             <RecipeEditorPage
               ingredients={ingredients}
@@ -135,6 +147,30 @@ function AppRoutes({
       </Route>
     </Routes>
   );
+}
+
+function PublicRoutes() {
+  return (
+    <Routes>
+      <Route element={<OrganizerSelectionPage />} path="/organizador/:token" />
+      <Route element={<GuestMenuPage />} path="/menu/:token" />
+      <Route element={<Navigate replace to="/" />} path="*" />
+    </Routes>
+  );
+}
+
+function AppRouter() {
+  const location = useLocation();
+
+  const isPublicRoute =
+    location.pathname.startsWith('/organizador/') ||
+    location.pathname.startsWith('/menu/');
+
+  if (isPublicRoute) {
+    return <PublicRoutes />;
+  }
+
+  return <AppInner />;
 }
 
 function AppInner() {
@@ -208,10 +244,6 @@ function AppInner() {
   };
 
   const onDeleteRecipe = async (recipeId: string) => {
-    if (!window.confirm('¿Seguro que quieres eliminar esta receta?')) {
-      return;
-    }
-
     await deleteRecipe(recipeId);
     setRecipes((current) => current.filter((recipe) => recipe.id !== recipeId));
     window.location.hash = '#/';
@@ -250,19 +282,6 @@ function AppInner() {
   };
 
   const onDeleteIngredient = async (ingredientId: string) => {
-    const usedCount = recipes.filter((recipe) =>
-      recipe.ingredients.some((ingredient) => ingredient.ingredientId === ingredientId),
-    ).length;
-
-    if (usedCount > 0) {
-      window.alert('No puedes borrar este ingrediente porque está usado en una o más recetas.');
-      return;
-    }
-
-    if (!window.confirm('¿Seguro que quieres borrar este ingrediente?')) {
-      return;
-    }
-
     await deleteIngredient(ingredientId);
     setIngredients((current) => current.filter((ingredient) => ingredient.id !== ingredientId));
   };
@@ -315,7 +334,7 @@ export default function App() {
   return (
     <HashRouter>
       <ScrollToTop />
-      <AppInner />
+      <AppRouter />
     </HashRouter>
   );
 }

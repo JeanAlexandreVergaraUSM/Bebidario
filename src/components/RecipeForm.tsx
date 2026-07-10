@@ -521,10 +521,10 @@ function discardDraft() {
 
     {showRestoreDraft ? (
   <div className="draft-modal-backdrop" role="presentation">
-    <section className="draft-modal" role="dialog" aria-modal="true">
+    <section className="draft-modal" role="dialog" aria-modal="true" aria-labelledby="recipe-draft-title" aria-describedby="recipe-draft-description">
       <p className="eyebrow">Borrador encontrado</p>
-      <h2>¿Quieres retomar tu bebida?</h2>
-      <p className="muted">
+      <h2 id="recipe-draft-title">¿Quieres retomar tu bebida?</h2>
+      <p className="muted" id="recipe-draft-description">
         Hay una bebida que dejaste a medias. Puedes retomarla o borrarla para empezar de cero.
       </p>
 

@@ -9,23 +9,32 @@ interface HomePageProps {
   onToggleFavorite: (recipe: Recipe) => void;
 }
 
+function normalizeText(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
 export function HomePage({ recipes, onToggleFavorite }: HomePageProps) {
   const [query, setQuery] = useState('');
 
   const visibleRecipes = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
+    const normalized = normalizeText(query.trim());
 
-    if (!normalized) {
-      return recipes;
-    }
+    if (!normalized) return recipes;
 
     return recipes.filter((recipe) => {
-      const ingredients = recipe.ingredients.map((item) => item.name.toLowerCase()).join(' ');
-      const tags = recipe.tags.join(' ').toLowerCase();
-      return [recipe.title, recipe.description ?? '', recipe.category, ingredients, tags]
-        .join(' ')
-        .toLowerCase()
-        .includes(normalized);
+      const ingredients = recipe.ingredients.map((item) => item.name).join(' ');
+      const tags = recipe.tags.join(' ');
+
+      return normalizeText([
+        recipe.title,
+        recipe.description ?? '',
+        recipe.category,
+        ingredients,
+        tags,
+      ].join(' ')).includes(normalized);
     });
   }, [query, recipes]);
 
@@ -34,10 +43,10 @@ export function HomePage({ recipes, onToggleFavorite }: HomePageProps) {
       <EmptyState
         action={
           <Link className="primary-button" to="/recetas/nueva">
-  Crear primera bebida
-</Link>
+            Crear primera bebida
+          </Link>
         }
-        description="Empieza con una preparación simple y luego la irás afinando desde el celular o el computador."
+        description="Empieza con una preparación simple. Después podrás editarla, agregar imágenes y usarla en tus eventos."
         title="Todavía no tienes bebidas guardadas"
       />
     );
@@ -49,18 +58,22 @@ export function HomePage({ recipes, onToggleFavorite }: HomePageProps) {
         <div>
           <p className="eyebrow">Tu colección</p>
           <h2>Bebidas creadas</h2>
-<p className="muted">{visibleRecipes.length} de {recipes.length} bebida(s) visibles.</p>
+          <p className="muted" aria-live="polite">
+            {visibleRecipes.length} de {recipes.length} {recipes.length === 1 ? 'bebida visible' : 'bebidas visibles'}.
+          </p>
         </div>
+
         <Link className="primary-button" to="/recetas/nueva">
           + Nueva bebida
         </Link>
       </header>
 
-      <label>
-        Buscar receta o ingrediente
+      <label htmlFor="recipe-search">
+        Buscar bebida o ingrediente
         <input
+          id="recipe-search"
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Ej: frutilla, brunch, cítrico"
+          placeholder="Ej: frutilla, cítrico, coco..."
           type="search"
           value={query}
         />
@@ -74,8 +87,8 @@ export function HomePage({ recipes, onToggleFavorite }: HomePageProps) {
         </div>
       ) : (
         <EmptyState
-          description="Prueba otro nombre, ingrediente o tag."
-          title="No encontramos recetas con ese filtro"
+          description="Prueba con otro nombre, ingrediente o categoría."
+          title="No encontramos bebidas con ese filtro"
         />
       )}
     </section>

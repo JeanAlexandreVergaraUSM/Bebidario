@@ -15,25 +15,29 @@ function difficultyLabel(value: Recipe['difficulty']) {
 export function RecipeCard({ recipe, onToggleFavorite }: RecipeCardProps) {
   return (
     <article className="recipe-card">
-      <Link className="recipe-media" to={`/recetas/${recipe.id}`}>
-        {recipe.image_url ? (
-          <img alt={recipe.title} src={recipe.image_url} />
-        ) : (
-          <div className="recipe-placeholder">🍹</div>
-        )}
+      <div className="recipe-media-shell">
+        <Link
+          aria-label={`Ver receta de ${recipe.title}`}
+          className="recipe-media"
+          to={`/recetas/${recipe.id}`}
+        >
+          {recipe.image_url ? (
+            <img alt={`Presentación de ${recipe.title}`} loading="lazy" src={recipe.image_url} />
+          ) : (
+            <div className="recipe-placeholder" aria-hidden="true">🍹</div>
+          )}
+        </Link>
 
         <button
-          aria-label={recipe.favorite ? 'Quitar de favoritas' : 'Agregar a favoritas'}
+          aria-label={recipe.favorite ? `Quitar ${recipe.title} de favoritas` : `Agregar ${recipe.title} a favoritas`}
+          aria-pressed={recipe.favorite}
           className={`recipe-favorite ${recipe.favorite ? 'active' : ''}`}
-          onClick={(event) => {
-            event.preventDefault();
-            onToggleFavorite(recipe);
-          }}
+          onClick={() => onToggleFavorite(recipe)}
           type="button"
         >
-          ♥
+          <span aria-hidden="true">♥</span>
         </button>
-      </Link>
+      </div>
 
       <div className="recipe-content">
         <div className="recipe-topline">
@@ -48,10 +52,10 @@ export function RecipeCard({ recipe, onToggleFavorite }: RecipeCardProps) {
           {recipe.description || 'Sin descripción todavía.'}
         </p>
 
-        <div className="recipe-meta">
-          <span>⏱ {recipe.prep_minutes} min</span>
-          <span>👥 {recipe.servings} porción{recipe.servings !== 1 ? 'es' : ''}</span>
-          <span>⭐ {difficultyLabel(recipe.difficulty)}</span>
+        <div className="recipe-meta" aria-label="Datos de la receta">
+          <span><span aria-hidden="true">⏱</span> {recipe.prep_minutes} min</span>
+          <span><span aria-hidden="true">👥</span> {recipe.servings} porción{recipe.servings !== 1 ? 'es' : ''}</span>
+          <span><span aria-hidden="true">⭐</span> {difficultyLabel(recipe.difficulty)}</span>
         </div>
       </div>
     </article>

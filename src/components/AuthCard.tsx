@@ -13,7 +13,13 @@ export function AuthCard({ onReady }: AuthCardProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(event: FormEvent) {
+  function changeMode(nextMode: 'login' | 'register') {
+    setMode(nextMode);
+    setMessage(null);
+    setError(null);
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setError(null);
@@ -22,33 +28,29 @@ export function AuthCard({ onReady }: AuthCardProps) {
     try {
       if (mode === 'login') {
         const { error: loginError } = await supabase.auth.signInWithPassword({
-          email,
+          email: email.trim(),
           password,
         });
 
-        if (loginError) {
-          throw loginError;
-        }
+        if (loginError) throw loginError;
 
         onReady();
         return;
       }
 
       const { error: signUpError } = await supabase.auth.signUp({
-        email,
+        email: email.trim(),
         password,
       });
 
-      if (signUpError) {
-        throw signUpError;
-      }
+      if (signUpError) throw signUpError;
 
-      setMessage(
-        'Cuenta creada. Revisa tu correo si tienes confirmación activada en Supabase.',
-      );
+      setMessage('Cuenta creada. Revisa tu correo si la confirmación está activada.');
       onReady();
-    } catch (err) {
-      const nextMessage = err instanceof Error ? err.message : 'No se pudo continuar.';
+    } catch (authError) {
+      const nextMessage = authError instanceof Error
+        ? authError.message
+        : 'No se pudo continuar. Intenta nuevamente.';
       setError(nextMessage);
     } finally {
       setLoading(false);
@@ -57,38 +59,41 @@ export function AuthCard({ onReady }: AuthCardProps) {
 
   return (
     <main className="auth-shell">
-      <section className="auth-card">
+      <section className="auth-card" aria-labelledby="auth-title">
         <div className="auth-copy">
           <p className="eyebrow">Bebidario</p>
-<h1>Tu colección de bebidas, batidos y preparaciones frías</h1>
-<p>
-  Guarda tus recetas en la nube, súbelas con imagen y revísalas desde el
-  celular o el computador.
-</p>
+          <h1 id="auth-title">Tu colección de bebidas, batidos y preparaciones frías</h1>
+          <p>
+            Guarda tus recetas, organiza tus ingredientes y prepara cartas para tus eventos desde un solo lugar.
+          </p>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>
-          <div className="auth-switch">
+          <div className="auth-switch" role="group" aria-label="Elegir entre entrar o crear cuenta">
             <button
+              aria-pressed={mode === 'login'}
               className={mode === 'login' ? 'is-active' : ''}
-              onClick={() => setMode('login')}
+              onClick={() => changeMode('login')}
               type="button"
             >
               Entrar
             </button>
             <button
+              aria-pressed={mode === 'register'}
               className={mode === 'register' ? 'is-active' : ''}
-              onClick={() => setMode('register')}
+              onClick={() => changeMode('register')}
               type="button"
             >
               Crear cuenta
             </button>
           </div>
 
-          <label>
+          <label htmlFor="auth-email">
             Correo
             <input
+              id="auth-email"
               autoComplete="email"
+              inputMode="email"
               onChange={(event) => setEmail(event.target.value)}
               required
               type="email"
@@ -96,9 +101,10 @@ export function AuthCard({ onReady }: AuthCardProps) {
             />
           </label>
 
-          <label>
+          <label htmlFor="auth-password">
             Contraseña
             <input
+              id="auth-password"
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               minLength={6}
               onChange={(event) => setPassword(event.target.value)}
@@ -106,13 +112,16 @@ export function AuthCard({ onReady }: AuthCardProps) {
               type="password"
               value={password}
             />
+            {mode === 'register' ? (
+              <span className="field-help">Usa al menos 6 caracteres.</span>
+            ) : null}
           </label>
 
-          {message ? <p className="form-feedback ok">{message}</p> : null}
-          {error ? <p className="form-feedback error">{error}</p> : null}
+          {message ? <p className="form-feedback ok" role="status" aria-live="polite">{message}</p> : null}
+          {error ? <p className="form-feedback error" role="alert">{error}</p> : null}
 
           <button className="primary-button" disabled={loading} type="submit">
-            {loading ? 'Procesando...' : mode === 'login' ? 'Entrar' : 'Crear cuenta'}
+            {loading ? 'Procesando...' : mode === 'login' ? 'Entrar a Bebidario' : 'Crear mi cuenta'}
           </button>
         </form>
       </section>

@@ -196,3 +196,21 @@ Proyecto personal desarrollado como una web app moderna para organizar y present
 
 **Bebidario convierte una simple lista de recetas en una colección visual de bebidas que realmente dan ganas de preparar.**
 
+
+## Enlaces públicos de eventos
+
+Los enlaces para el organizador y la carta de invitados se construyen con una URL pública estable, no con `localhost`.
+
+Por defecto el proyecto usa:
+
+```text
+https://jeanalexandrevergarausm.github.io/Bebidario/
+```
+
+Para cambiar el dominio en el futuro, agrega esta variable al entorno local y a los secretos/variables del despliegue:
+
+```text
+VITE_PUBLIC_APP_URL=https://tu-dominio.cl/
+```
+
+Después de la Fase 4, ejecuta también `supabase/phase5.sql` en Supabase SQL Editor para habilitar el tipo de evento y la temática de cumpleaños en las cartas públicas.

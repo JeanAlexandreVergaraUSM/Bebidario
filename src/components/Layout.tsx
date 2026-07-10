@@ -1,5 +1,5 @@
+import { MouseEvent, useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { MouseEvent, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import {
@@ -19,6 +19,7 @@ const navItems = [
   { to: '/', label: 'Bebidas', icon: '🍹' },
   { to: '/favoritas', label: 'Favoritas', icon: '❤️' },
   { to: '/ingredientes', label: 'Ingredientes', icon: '🍓' },
+  { to: '/eventos', label: 'Eventos', icon: '📅' },
   { to: '/ajustes', label: 'Ajustes', icon: '⚙️' },
 ];
 
@@ -34,9 +35,60 @@ export function Layout({ session }: LayoutProps) {
     pendingAction: PendingAction;
   } | null>(null);
 
+  const draftDialogRef = useRef<HTMLElement | null>(null);
+  const cancelDraftButtonRef = useRef<HTMLButtonElement | null>(null);
+
   const current = navItems.find((item) =>
     item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to),
   );
+
+  useEffect(() => {
+    if (!draftModal) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    window.requestAnimationFrame(() => {
+      cancelDraftButtonRef.current?.focus();
+    });
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setDraftModal(null);
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+
+      const elements = draftDialogRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+
+      if (!elements?.length) {
+        event.preventDefault();
+        return;
+      }
+
+      const first = elements[0];
+      const last = elements[elements.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [draftModal]);
 
   function goToTarget(target: string) {
     if (target === '/' && hasDraft('recipe')) {
@@ -60,10 +112,7 @@ export function Layout({ session }: LayoutProps) {
     const activeDraft = getActiveDraft();
 
     if (activeDraft) {
-      setDraftModal({
-        kind: activeDraft,
-        pendingAction: action,
-      });
+      setDraftModal({ kind: activeDraft, pendingAction: action });
       return;
     }
 
@@ -72,23 +121,15 @@ export function Layout({ session }: LayoutProps) {
 
   function handleNavClick(event: MouseEvent<HTMLAnchorElement>, target: string) {
     event.preventDefault();
-
-    requestAction({
-      type: 'navigation',
-      target,
-    });
+    requestAction({ type: 'navigation', target });
   }
 
   function handleLogout() {
-    requestAction({
-      type: 'logout',
-    });
+    requestAction({ type: 'logout' });
   }
 
   function handleSaveAndLeave() {
-    if (!draftModal) {
-      return;
-    }
+    if (!draftModal) return;
 
     clearActiveDraft(draftModal.kind);
     const action = draftModal.pendingAction;
@@ -97,9 +138,7 @@ export function Layout({ session }: LayoutProps) {
   }
 
   function handleDiscardAndLeave() {
-    if (!draftModal) {
-      return;
-    }
+    if (!draftModal) return;
 
     clearDraft(draftModal.kind);
     const action = draftModal.pendingAction;
@@ -107,12 +146,10 @@ export function Layout({ session }: LayoutProps) {
     runPendingAction(action);
   }
 
-  function handleCancelModal() {
-    setDraftModal(null);
-  }
-
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">Saltar al contenido principal</a>
+
       <aside className="sidebar desktop-only">
         <div>
           <p className="eyebrow">Bebidario</p>
@@ -156,7 +193,7 @@ export function Layout({ session }: LayoutProps) {
           </button>
         </header>
 
-        <main className="page-shell">
+        <main className="page-shell" id="main-content" tabIndex={-1}>
           <Outlet />
         </main>
 
@@ -176,26 +213,45 @@ export function Layout({ session }: LayoutProps) {
       </div>
 
       {draftModal ? (
-        <div className="draft-modal-backdrop" role="presentation">
-          <section className="draft-modal" role="dialog" aria-modal="true">
+        <div
+          className="draft-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setDraftModal(null);
+            }
+          }}
+        >
+          <section
+            ref={draftDialogRef}
+            className="draft-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="draft-modal-title"
+            aria-describedby="draft-modal-description"
+          >
             <p className="eyebrow">Borrador pendiente</p>
-            <h2>Tienes una {getDraftLabel(draftModal.kind)} sin terminar</h2>
-            <p className="muted">
-              Puedes guardar lo que llevas como borrador, salir sin guardarlo o cancelar
-              para seguir editando.
+            <h2 id="draft-modal-title">Tienes una {getDraftLabel(draftModal.kind)} sin terminar</h2>
+            <p className="muted" id="draft-modal-description">
+              Puedes guardar lo que llevas como borrador, salir sin guardarlo o cancelar para seguir editando.
             </p>
 
             <div className="draft-modal-actions">
               <button className="primary-button" onClick={handleSaveAndLeave} type="button">
-                Guardar y salir
+                Guardar borrador y salir
               </button>
 
               <button className="ghost-button danger" onClick={handleDiscardAndLeave} type="button">
-                No guardar y salir
+                Salir sin guardar
               </button>
 
-              <button className="ghost-button" onClick={handleCancelModal} type="button">
-                Cancelar
+              <button
+                ref={cancelDraftButtonRef}
+                className="ghost-button"
+                onClick={() => setDraftModal(null)}
+                type="button"
+              >
+                Seguir editando
               </button>
             </div>
           </section>
